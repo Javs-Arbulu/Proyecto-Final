@@ -87,6 +87,7 @@ def test_prosa_sin_json_es_json_invalido_tras_el_fallback() -> None:
     resultado = parsear_respuesta(respuesta_texto("No puedo ayudarte con eso."))
     assert resultado.tipo_error is TipoError.JSON_INVALIDO
     assert resultado.uso_fallback is True
+    assert resultado.errores[0].startswith("la respuesta no contiene ningún objeto JSON")
 
 
 @pytest.mark.parametrize(
@@ -215,6 +216,7 @@ def test_notificador_y_descripcion_de_cada_intento(settings: Settings) -> None:
         settings,
         notificar=lambda i, n, r: lineas.append(describir_intento(i, n, r)),
     )
-    assert lineas[0].startswith("intento 1/3 ✗ JSON inválido: ")
+    assert lineas[0].startswith("intento 1/3 ✗ JSON inválido: Unterminated string")
+    assert "JSON inválido: JSON inválido" not in lineas[0]
     assert lineas[0].endswith("→ reintentando con feedback")
     assert lineas[1] == "intento 2/3 ✓ JSON válido según el esquema"

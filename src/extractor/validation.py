@@ -180,7 +180,13 @@ def _cargar_json(texto: str) -> tuple[object | None, ResultadoParseo | None, boo
     except json.JSONDecodeError as error:
         candidato = extraer_primer_objeto_json(texto)
         if candidato is None:
-            detalle = f"JSON inválido: {error.msg} (línea {error.lineno}, columna {error.colno})"
+            if "{" not in texto:
+                muestra = truncar(texto.strip(), MAX_CHARS_VALOR)
+                detalle = f"la respuesta no contiene ningún objeto JSON (texto: {muestra!r})"
+            else:
+                detalle = (
+                    f"JSON inválido: {error.msg} (línea {error.lineno}, columna {error.colno})"
+                )
             return None, _error(TipoError.JSON_INVALIDO, detalle, uso_fallback=True), True
         return json.loads(candidato), None, True
 
@@ -223,6 +229,7 @@ class ResultadoExtraccion:
     intentos: list[Intento]
     motivo_fallo: CodigoMotivo | None = None
     detalle: str = ""
+    llamadas_api: int = 0
 
 
 def describir_intento(intento: Intento, max_intentos: int, se_reintentara: bool) -> str:
@@ -232,8 +239,9 @@ def describir_intento(intento: Intento, max_intentos: int, se_reintentara: bool)
         extra = " (vía fallback)" if intento.uso_fallback else ""
         return f"{cabecera} ✓ JSON válido según el esquema{extra}"
     nombre = NOMBRE_ERROR[intento.tipo_error] if intento.tipo_error else "error"
+    detalle = (intento.detalle_error or "").removeprefix(f"{nombre}: ")
     sufijo = " → reintentando con feedback" if se_reintentara else " → sin intentos restantes"
-    return f"{cabecera} ✗ {nombre}: {truncar(intento.detalle_error or '', 120)}{sufijo}"
+    return f"{cabecera} ✗ {nombre}: {truncar(detalle, 120)}{sufijo}"
 
 
 def _registrar_intento(
@@ -277,7 +285,10 @@ def extraer_con_reintentos(
         try:
             respuesta = cliente.extraer(SYSTEM_PROMPT, mensaje, esquema, max_tokens)
         except ErrorAPI as error:
-            return ResultadoExtraccion(None, intentos, CodigoMotivo.ERROR_API, str(error))
+            # La llamada fallida también cuenta para el presupuesto de la API.
+            return ResultadoExtraccion(
+                None, intentos, CodigoMotivo.ERROR_API, str(error), llamadas_api=numero
+            )
         parseo = parsear_respuesta(respuesta)
         intento = _registrar_intento(numero, respuesta, parseo, max_tokens)
         intentos.append(intento)
@@ -287,7 +298,7 @@ def extraer_con_reintentos(
                 intento, settings.max_intentos, not parseo.ok and numero < settings.max_intentos
             )
         if parseo.factura is not None:
-            return ResultadoExtraccion(parseo.factura, intentos)
+            return ResultadoExtraccion(parseo.factura, intentos, llamadas_api=numero)
         ultimo_error = parseo.tipo_error or TipoError.JSON_INVALIDO
         errores_previos = parseo.errores
         if ultimo_error is TipoError.RESPUESTA_TRUNCADA:
@@ -296,7 +307,9 @@ def extraer_con_reintentos(
         f"{settings.max_intentos} intento(s) agotado(s); último error "
         f"{NOMBRE_ERROR[ultimo_error]}: {intentos[-1].detalle_error}"
     )
-    return ResultadoExtraccion(None, intentos, MOTIVO_POR_ERROR[ultimo_error], detalle)
+    return ResultadoExtraccion(
+        None, intentos, MOTIVO_POR_ERROR[ultimo_error], detalle, llamadas_api=len(intentos)
+    )
 
 
 # ---------------------------------------------------------------------------

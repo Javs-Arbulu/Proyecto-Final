@@ -372,6 +372,7 @@ class ResultadoDocumento(BaseModel):
     advertencias: list[Advertencia] = Field(default_factory=list)
     datos: dict[str, Any] | None = None
     intentos: list[Intento] = Field(default_factory=list)
+    llamadas_api: int = 0
     tokens_entrada_total: int = 0
     tokens_salida_total: int = 0
     latencia_ms_total: int = 0

@@ -12,11 +12,21 @@ from rich.console import Console
 from rich.syntax import Syntax
 
 from extractor.config import ConfiguracionInvalida, Settings, cargar_settings
-from extractor.extraction import esquema_para_llm, problemas_compatibilidad_cohere
-from extractor.fault_injection import ClienteConFallas, ModoFallo
+from extractor.extraction import PROMPT_VERSION, esquema_para_llm, problemas_compatibilidad_cohere
+from extractor.fault_injection import ModoFallo
 from extractor.llm_client import ClienteCohere, ClienteLLM, ErrorAutenticacion
-from extractor.schema import EstadoExtraccion, Intento
-from extractor.validation import Evaluacion, describir_intento, evaluar, extraer_con_reintentos
+from extractor.pipeline import Simulacion, procesar_aislado, procesar_lote
+from extractor.report import (
+    COLOR_ESTADO,
+    calcular_metricas,
+    cargar_esperado,
+    carpeta_salida,
+    construir_metadatos,
+    escribir_reportes,
+    mostrar_en_consola,
+)
+from extractor.schema import Intento, ResultadoDocumento
+from extractor.validation import describir_intento
 
 # pretty_exceptions_show_locals=False: un traceback "bonito" con variables locales
 # podría exponer la API key. Nunca se muestran locales.
@@ -28,6 +38,7 @@ app = typer.Typer(
 )
 consola = Console()
 CARPETA_LOGS = Path("logs")
+RUTA_ESPERADO = Path("data") / "esperado.json"
 
 
 def configurar_logging(verbose: bool = False) -> None:
@@ -60,21 +71,15 @@ def crear_cliente(settings: Settings) -> ClienteLLM:
     )
 
 
-COLOR_ESTADO = {
-    EstadoExtraccion.EXITOSO: "green",
-    EstadoExtraccion.PARCIAL: "yellow",
-    EstadoExtraccion.FALLIDO: "red",
-}
-
-
-def _imprimir_evaluacion(evaluacion: Evaluacion) -> None:
-    color = COLOR_ESTADO[evaluacion.estado]
-    motivos = ", ".join(m.value for m in evaluacion.motivos)
-    consola.print(f"[bold {color}]{evaluacion.estado.value}[/] · {motivos} · {evaluacion.detalle}")
-    if evaluacion.campos_faltantes:
-        consola.print(f"  campos faltantes: {', '.join(evaluacion.campos_faltantes)}")
-    for advertencia in evaluacion.advertencias:
-        consola.print(f"  [yellow]⚠ {advertencia.codigo.value}[/]: {advertencia.mensaje}")
+def _simulacion(modo: ModoFallo | None, patron: str | None) -> Simulacion | None:
+    if modo is None:
+        if patron is not None:
+            consola.print("[bold red]--simular-en requiere --simular-fallo[/]")
+            raise typer.Exit(code=2)
+        return None
+    destino = f" (solo {patron})" if patron else ""
+    consola.print(f"[bold magenta][SIMULACIÓN: {modo.value}]{destino}[/]")
+    return Simulacion(modo, patron)
 
 
 def _imprimir_intento(intento: Intento, max_intentos: int, se_reintentara: bool) -> None:
@@ -82,43 +87,110 @@ def _imprimir_intento(intento: Intento, max_intentos: int, se_reintentara: bool)
     consola.print(f"  [{color}]{describir_intento(intento, max_intentos, se_reintentara)}[/]")
 
 
+def _imprimir_resultado(resultado: ResultadoDocumento) -> None:
+    color = COLOR_ESTADO[resultado.estado]
+    motivos = ", ".join(m.value for m in resultado.motivos)
+    consola.print(f"[bold {color}]{resultado.estado.value}[/] · {motivos} · {resultado.detalle}")
+    if resultado.campos_faltantes:
+        consola.print(f"  campos faltantes: {', '.join(resultado.campos_faltantes)}")
+    for advertencia in resultado.advertencias:
+        consola.print(f"  [yellow]⚠ {advertencia.codigo.value}[/]: {advertencia.mensaje}")
+    consola.print(
+        f"  [dim]llamadas a la API: {resultado.llamadas_api} · tokens "
+        f"{resultado.tokens_entrada_total}/{resultado.tokens_salida_total} · "
+        f"{resultado.latencia_ms_total} ms[/]"
+    )
+
+
+OpcionSimular = Annotated[
+    ModoFallo | None,
+    typer.Option("--simular-fallo", help="Inyecta un fallo determinista (nunca por defecto)."),
+]
+OpcionVerbose = Annotated[bool, typer.Option("--verbose", help="Log en nivel DEBUG.")]
+
+
 @app.command()
-def procesar() -> None:
-    """Procesa un lote de documentos (pendiente: Fase 4)."""
-    _settings_o_salir()
-    consola.print("[yellow]Comando aún no implementado.[/]")
+def procesar(
+    carpeta: Annotated[Path, typer.Argument(help="Carpeta con documentos .txt.")],
+    max_intentos: Annotated[
+        int | None, typer.Option("--max-intentos", help="Total de llamadas de formato (1-5).")
+    ] = None,
+    simular_fallo: OpcionSimular = None,
+    simular_en: Annotated[
+        str | None, typer.Option("--simular-en", help="Patrón glob de documentos a simular.")
+    ] = None,
+    salida: Annotated[Path, typer.Option("--salida", help="Carpeta de reportes.")] = Path("output"),
+    verbose: OpcionVerbose = False,
+) -> None:
+    """Procesa un lote de documentos y genera los reportes."""
+    configurar_logging(verbose)
+    settings = _settings_o_salir(max_intentos=max_intentos)
+    if not carpeta.is_dir():
+        consola.print(f"[bold red]No existe la carpeta {carpeta}[/]")
+        raise typer.Exit(code=2)
+    simulacion = _simulacion(simular_fallo, simular_en)
+    consola.print(
+        f"Procesando [bold]{carpeta}[/] · cohere / {settings.modelo} · "
+        f"max_intentos={settings.max_intentos}"
+    )
+    lote = procesar_lote(
+        carpeta,
+        crear_cliente(settings),
+        settings,
+        simulacion,
+        consola,
+        al_terminar_documento=lambda r: consola.print(
+            f"[{COLOR_ESTADO[r.estado]}]● {r.archivo}: {r.estado.value}[/] "
+            f"({', '.join(m.value for m in r.motivos)})"
+        ),
+    )
+    metricas = calcular_metricas(
+        lote.resultados, cargar_esperado(RUTA_ESPERADO), settings.tolerancia_montos
+    )
+    metadatos = construir_metadatos(
+        settings.modelo,
+        PROMPT_VERSION,
+        settings.resumen_publico(),
+        {"modo": simulacion.modo.value, "patron": simulacion.patron} if simulacion else None,
+        lote.interrumpido,
+        lote.n_archivos,
+    )
+    destino = carpeta_salida(salida, simulacion.modo.value if simulacion else None)
+    rutas = escribir_reportes(destino, lote.resultados, metricas, metadatos)
+    mostrar_en_consola(consola, lote.resultados, metricas)
+    consola.print(f"Reportes: {', '.join(str(ruta) for ruta in rutas)}")
+    if lote.interrumpido:
+        consola.print("[bold yellow]Lote interrumpido: se guardó el reporte parcial.[/]")
+        raise typer.Exit(code=130)
+    if lote.circuito_abierto:
+        consola.print("[bold red]Credenciales inválidas: circuit breaker abierto.[/]")
+        raise typer.Exit(code=1)
 
 
 @app.command()
 def extraer(
     ruta: Annotated[Path, typer.Argument(help="Archivo .txt a procesar.")],
-    simular_fallo: Annotated[
-        ModoFallo | None, typer.Option("--simular-fallo", help="Inyecta un fallo determinista.")
-    ] = None,
-    verbose: Annotated[bool, typer.Option("--verbose", help="Log en nivel DEBUG.")] = False,
+    simular_fallo: OpcionSimular = None,
+    verbose: OpcionVerbose = False,
 ) -> None:
-    """Extrae un documento individual mostrando cada intento."""
+    """Extrae un documento individual mostrando cada intento (pensado para la demo)."""
     configurar_logging(verbose)
     settings = _settings_o_salir()
-    texto = ruta.read_text(encoding="utf-8")
-    cliente = crear_cliente(settings)
-    if simular_fallo is not None:
-        consola.print(f"[bold magenta][SIMULACIÓN: {simular_fallo.value}][/]")
-        cliente = ClienteConFallas(cliente, simular_fallo, settings.max_intentos)
-    consola.print(f"[bold]{ruta.name}[/] · modelo {settings.modelo}")
+    if not ruta.is_file():
+        consola.print(f"[bold red]No existe el archivo {ruta}[/]")
+        raise typer.Exit(code=2)
+    simulacion = _simulacion(simular_fallo, None)
+    consola.print(f"[bold]{ruta.name}[/] · cohere / {settings.modelo}")
     try:
-        resultado = extraer_con_reintentos(
-            texto, ruta.name, cliente, settings, notificar=_imprimir_intento
+        resultado = procesar_aislado(
+            ruta, crear_cliente(settings), settings, simulacion, _imprimir_intento
         )
     except ErrorAutenticacion as error:
         consola.print(f"[bold red]ErrorAutenticacion: {error}[/]")
         raise typer.Exit(code=1) from None
-    if resultado.factura is None:
-        consola.print(f"[bold red]FALLIDO · {resultado.motivo_fallo}[/]: {resultado.detalle}")
-        raise typer.Exit(code=1)
-    evaluacion = evaluar(resultado.factura, texto, settings)
-    consola.print(Syntax(json.dumps(evaluacion.datos, ensure_ascii=False, indent=2), "json"))
-    _imprimir_evaluacion(evaluacion)
+    if resultado.datos is not None:
+        consola.print(Syntax(json.dumps(resultado.datos, ensure_ascii=False, indent=2), "json"))
+    _imprimir_resultado(resultado)
 
 
 @app.command()

@@ -133,3 +133,35 @@ def _aislar_entorno(monkeypatch: pytest.MonkeyPatch) -> None:
 def settings() -> Settings:
     """Settings de prueba: sin leer .env y con una key falsa."""
     return Settings(_env_file=None, cohere_api_key=KEY_FALSA, intervalo_min_s=0)
+
+
+@dataclass
+class FakePorDocumento:
+    """Fake que responde según el ``nombre`` del documento en el mensaje de usuario.
+
+    ``respuestas`` mapea un prefijo del nombre de archivo a una respuesta o excepción.
+    Los documentos sin entrada reciben ``por_defecto``.
+    """
+
+    respuestas: dict[str, RespuestaLLM | BaseException]
+    por_defecto: RespuestaLLM | BaseException | None = None
+    llamadas: list[str] = field(default_factory=list)
+
+    def extraer(
+        self,
+        system: str,
+        mensaje_usuario: str,
+        schema: dict[str, Any],
+        max_tokens: int,
+    ) -> RespuestaLLM:
+        nombre = mensaje_usuario.split('nombre="', 1)[1].split('"', 1)[0]
+        self.llamadas.append(nombre)
+        elemento = next(
+            (r for prefijo, r in self.respuestas.items() if nombre.startswith(prefijo)),
+            self.por_defecto,
+        )
+        if elemento is None:
+            raise AssertionError(f"llamada inesperada para {nombre}")
+        if isinstance(elemento, BaseException):
+            raise elemento
+        return elemento

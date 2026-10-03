@@ -12,19 +12,16 @@ from rich.console import Console
 from rich.syntax import Syntax
 
 from extractor.config import ConfiguracionInvalida, Settings, cargar_settings
-from extractor.extraction import (
-    SYSTEM_PROMPT,
-    construir_herramienta,
-    construir_mensaje_usuario,
-    motivos_incompatibilidad_strict,
-)
-from extractor.llm_client import ClienteAnthropic, ClienteLLM, ErrorAPI, ErrorAutenticacion
-from extractor.validation import parsear_respuesta
+from extractor.extraction import esquema_para_llm, problemas_compatibilidad_cohere
+from extractor.fault_injection import ClienteConFallas, ModoFallo
+from extractor.llm_client import ClienteCohere, ClienteLLM, ErrorAutenticacion
+from extractor.schema import Intento
+from extractor.validation import describir_intento, extraer_con_reintentos
 
 # pretty_exceptions_show_locals=False: un traceback "bonito" con variables locales
 # podría exponer la API key. Nunca se muestran locales.
 app = typer.Typer(
-    help="Extractor de datos estructurados desde facturas SUNAT.",
+    help="Extractor de datos estructurados desde facturas SUNAT (Cohere Structured Outputs).",
     pretty_exceptions_show_locals=False,
     no_args_is_help=True,
     add_completion=False,
@@ -42,7 +39,7 @@ def configurar_logging(verbose: bool = False) -> None:
     raiz.handlers = [manejador]
     raiz.setLevel(logging.DEBUG if verbose else logging.INFO)
     # Las librerías HTTP podrían registrar detalles de la petición en DEBUG: se silencian.
-    for ruidoso in ("anthropic", "httpx", "httpx2", "httpcore"):
+    for ruidoso in ("cohere", "httpx", "httpcore"):
         logging.getLogger(ruidoso).setLevel(logging.WARNING)
 
 
@@ -52,13 +49,20 @@ def _settings_o_salir(**overrides: object) -> Settings:
         return cargar_settings(**{k: v for k, v in overrides.items() if v is not None})
     except ConfiguracionInvalida as error:
         consola.print(f"[bold red]{error}[/]")
-        consola.print("Copia [bold].env.example[/] a [bold].env[/] y coloca tu ANTHROPIC_API_KEY.")
+        consola.print("Copia [bold].env.example[/] a [bold].env[/] y coloca tu COHERE_API_KEY.")
         raise typer.Exit(code=2) from None
 
 
 def crear_cliente(settings: Settings) -> ClienteLLM:
     """Fábrica del cliente real (los tests la reemplazan por un fake)."""
-    return ClienteAnthropic(settings.anthropic_api_key, settings.modelo, settings.timeout_s)
+    return ClienteCohere(
+        settings.cohere_api_key, settings.modelo, settings.timeout_s, settings.intervalo_min_s
+    )
+
+
+def _imprimir_intento(intento: Intento, max_intentos: int, se_reintentara: bool) -> None:
+    color = "green" if intento.ok else ("yellow" if se_reintentara else "red")
+    consola.print(f"  [{color}]{describir_intento(intento, max_intentos, se_reintentara)}[/]")
 
 
 @app.command()
@@ -71,50 +75,45 @@ def procesar() -> None:
 @app.command()
 def extraer(
     ruta: Annotated[Path, typer.Argument(help="Archivo .txt a procesar.")],
+    simular_fallo: Annotated[
+        ModoFallo | None, typer.Option("--simular-fallo", help="Inyecta un fallo determinista.")
+    ] = None,
     verbose: Annotated[bool, typer.Option("--verbose", help="Log en nivel DEBUG.")] = False,
 ) -> None:
-    """Extrae un documento individual (versión básica de la Fase 3: un intento)."""
+    """Extrae un documento individual mostrando cada intento."""
     configurar_logging(verbose)
     settings = _settings_o_salir()
     texto = ruta.read_text(encoding="utf-8")
     cliente = crear_cliente(settings)
+    if simular_fallo is not None:
+        consola.print(f"[bold magenta][SIMULACIÓN: {simular_fallo.value}][/]")
+        cliente = ClienteConFallas(cliente, simular_fallo, settings.max_intentos)
+    consola.print(f"[bold]{ruta.name}[/] · modelo {settings.modelo}")
     try:
-        respuesta = cliente.extraer(
-            SYSTEM_PROMPT,
-            construir_mensaje_usuario(texto, ruta.name),
-            construir_herramienta(),
-            settings.max_tokens,
+        resultado = extraer_con_reintentos(
+            texto, ruta.name, cliente, settings, notificar=_imprimir_intento
         )
-    except (ErrorAutenticacion, ErrorAPI) as error:
-        consola.print(f"[bold red]{type(error).__name__}: {error}[/]")
+    except ErrorAutenticacion as error:
+        consola.print(f"[bold red]ErrorAutenticacion: {error}[/]")
         raise typer.Exit(code=1) from None
-    consola.print(
-        f"stop_reason={respuesta.stop_reason} tool_use={respuesta.hubo_tool_use} "
-        f"tokens={respuesta.tokens_entrada}/{respuesta.tokens_salida} "
-        f"latencia={respuesta.latencia_ms} ms"
-    )
-    resultado = parsear_respuesta(respuesta)
     if resultado.factura is None:
-        consola.print(f"[bold red]✗ {resultado.tipo_error}[/]: {resultado.errores}")
+        consola.print(f"[bold red]FALLIDO · {resultado.motivo_fallo}[/]: {resultado.detalle}")
         raise typer.Exit(code=1)
     datos = resultado.factura.model_dump(mode="json")
     consola.print(Syntax(json.dumps(datos, ensure_ascii=False, indent=2), "json"))
-    consola.print("[bold green]✓ JSON válido según FacturaExtraida[/]")
 
 
 @app.command()
 def esquema() -> None:
-    """Imprime el JSON Schema que se envía al modelo como input_schema de la herramienta."""
-    herramienta = construir_herramienta()
-    texto = json.dumps(herramienta["input_schema"], ensure_ascii=False, indent=2)
-    consola.print(Syntax(texto, "json"))
-    consola.print(f"Herramienta: [bold]{herramienta['name']}[/] (tool_choice forzado)")
-    motivos = motivos_incompatibilidad_strict(herramienta["input_schema"])
-    if motivos:
-        consola.print(
-            "strict: [yellow]desactivado[/]. El esquema supera los límites documentados "
-            f"de structured outputs: {'; '.join(motivos)}. La validación Pydantic se ejecuta "
-            "siempre."
-        )
-    else:
-        consola.print("strict: [green]activado[/]")
+    """Imprime el JSON Schema que se envía a Cohere en ``response_format``."""
+    esquema_json = esquema_para_llm()
+    consola.print(Syntax(json.dumps(esquema_json, ensure_ascii=False, indent=2), "json"))
+    problemas = problemas_compatibilidad_cohere(esquema_json)
+    if problemas:
+        consola.print(f"[bold red]Incompatible con Structured Outputs de Cohere:[/] {problemas}")
+        raise typer.Exit(code=1)
+    consola.print(
+        "[green]Compatible con Structured Outputs de Cohere[/] "
+        '(response_format={"type": "json_object", "json_schema": ...}). '
+        "La validación Pydantic se ejecuta siempre."
+    )

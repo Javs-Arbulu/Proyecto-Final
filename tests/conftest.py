@@ -55,24 +55,22 @@ def factura_valida(**cambios: Any) -> dict[str, Any]:
     return datos
 
 
-def respuesta_tool(datos: dict[str, Any], stop_reason: str = "tool_use") -> RespuestaLLM:
-    """Respuesta con bloque tool_use (camino normal)."""
+def respuesta_json(datos: dict[str, Any], finish_reason: str = "COMPLETE") -> RespuestaLLM:
+    """Respuesta con el JSON serializado (camino normal de Structured Outputs)."""
     return RespuestaLLM(
         texto_crudo=json.dumps(datos, ensure_ascii=False),
-        hubo_tool_use=True,
-        stop_reason=stop_reason,
+        finish_reason=finish_reason,
         tokens_entrada=1000,
         tokens_salida=200,
         latencia_ms=50,
     )
 
 
-def respuesta_texto(texto: str, hubo_tool_use: bool = True) -> RespuestaLLM:
+def respuesta_texto(texto: str, finish_reason: str = "COMPLETE") -> RespuestaLLM:
     """Respuesta con texto crudo arbitrario (para simular JSON roto o prosa)."""
     return RespuestaLLM(
         texto_crudo=texto,
-        hubo_tool_use=hubo_tool_use,
-        stop_reason="tool_use" if hubo_tool_use else "end_turn",
+        finish_reason=finish_reason,
         tokens_entrada=1000,
         tokens_salida=150,
         latencia_ms=40,
@@ -85,7 +83,7 @@ class Llamada:
 
     system: str
     mensaje_usuario: str
-    herramienta: dict[str, Any]
+    schema: dict[str, Any]
     max_tokens: int
 
 
@@ -104,10 +102,10 @@ class FakeClienteLLM:
         self,
         system: str,
         mensaje_usuario: str,
-        herramienta: dict[str, Any],
+        schema: dict[str, Any],
         max_tokens: int,
     ) -> RespuestaLLM:
-        self.llamadas.append(Llamada(system, mensaje_usuario, herramienta, max_tokens))
+        self.llamadas.append(Llamada(system, mensaje_usuario, schema, max_tokens))
         indice = min(len(self.llamadas), len(self.guion)) - 1
         elemento = self.guion[indice]
         if isinstance(elemento, Exception):
@@ -119,13 +117,14 @@ class FakeClienteLLM:
 def _aislar_entorno(monkeypatch: pytest.MonkeyPatch) -> None:
     """Evita que los tests lean la key real o la configuración del desarrollador."""
     for variable in (
-        "ANTHROPIC_API_KEY",
+        "COHERE_API_KEY",
         "MODELO",
         "MAX_INTENTOS",
         "MAX_TOKENS",
         "TIMEOUT_S",
         "MAX_CHARS_DOCUMENTO",
         "TOLERANCIA_MONTOS",
+        "INTERVALO_MIN_S",
     ):
         monkeypatch.delenv(variable, raising=False)
 
@@ -133,4 +132,4 @@ def _aislar_entorno(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture
 def settings() -> Settings:
     """Settings de prueba: sin leer .env y con una key falsa."""
-    return Settings(_env_file=None, anthropic_api_key=KEY_FALSA)
+    return Settings(_env_file=None, cohere_api_key=KEY_FALSA, intervalo_min_s=0)

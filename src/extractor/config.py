@@ -10,7 +10,9 @@ from __future__ import annotations
 from pydantic import Field, SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-MODELO_POR_DEFECTO = "claude-haiku-4-5-20251001"
+MODELO_POR_DEFECTO = "command-a-03-2025"
+# command-r7b no es compatible con Structured Outputs en modo JSON Schema.
+MODELOS_INCOMPATIBLES = ("command-r7b",)
 MAX_INTENTOS_MIN = 1
 MAX_INTENTOS_MAX = 5
 TOPE_MAX_TOKENS = 8192
@@ -30,15 +32,17 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    anthropic_api_key: SecretStr
+    cohere_api_key: SecretStr
     modelo: str = MODELO_POR_DEFECTO
     max_intentos: int = 3
     max_tokens: int = Field(default=2048, ge=1, le=TOPE_MAX_TOKENS)
     timeout_s: float = Field(default=60, gt=0)
     max_chars_documento: int = Field(default=20000, ge=1)
     tolerancia_montos: float = Field(default=0.05, ge=0)
+    # La key de prueba de Cohere admite 20 llamadas por minuto: 60 / 20 = 3 s (+ margen).
+    intervalo_min_s: float = Field(default=3.1, ge=0)
 
-    @field_validator("anthropic_api_key")
+    @field_validator("cohere_api_key")
     @classmethod
     def _key_no_vacia(cls, valor: SecretStr) -> SecretStr:
         """Rechaza una key vacía o el placeholder de ``.env.example``."""
@@ -57,9 +61,17 @@ class Settings(BaseSettings):
             )
         return valor
 
+    @field_validator("modelo")
+    @classmethod
+    def _modelo_compatible(cls, valor: str) -> str:
+        """Rechaza modelos sin soporte de Structured Outputs con JSON Schema."""
+        if any(incompatible in valor.lower() for incompatible in MODELOS_INCOMPATIBLES):
+            raise ValueError(f"el modelo {valor} no soporta Structured Outputs en modo JSON")
+        return valor
+
     def resumen_publico(self) -> dict[str, object]:
         """Configuración sin secretos, apta para reportes y logs."""
-        return self.model_dump(exclude={"anthropic_api_key"})
+        return self.model_dump(exclude={"cohere_api_key"})
 
 
 def _mensaje_seguro(error: ValidationError) -> str:
@@ -67,9 +79,7 @@ def _mensaje_seguro(error: ValidationError) -> str:
     lineas = []
     for detalle in error.errors(include_input=False, include_url=False):
         campo = ".".join(str(parte) for parte in detalle["loc"]) or "configuración"
-        if campo == "anthropic_api_key":
-            campo = "ANTHROPIC_API_KEY"
-        lineas.append(f"- {campo}: {detalle['msg']}")
+        lineas.append(f"- {campo.upper()}: {detalle['msg']}")
     return "Configuración inválida:\n" + "\n".join(lineas)
 
 

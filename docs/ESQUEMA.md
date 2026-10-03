@@ -18,9 +18,9 @@ Las facturas electrónicas peruanas (SUNAT) son un caso real de **cuentas por pa
 
 | | `FacturaExtraida` (contrato con el LLM) | `FacturaValidada` (contrato de negocio) |
 |---|---|---|
-| Rol | Lo que el modelo debe devolver por la herramienta `registrar_factura` | La fila lista para la base de datos |
+| Rol | Lo que el modelo debe devolver (Structured Outputs de Cohere, `response_format` con JSON Schema) | La fila lista para la base de datos |
 | Rigidez | **Permisivo:** valida solo estructura y tipos | **Estricto:** obligatorios no nulos y formatos SUNAT |
-| Campos | Todos opcionales, `None` significa "no aparece en el documento" | Los 8 obligatorios no aceptan `null` |
+| Campos | Todos **obligatorios-nullable**: la clave siempre está y `null` significa "no aparece en el documento" | Los 8 obligatorios no aceptan `null` |
 | Montos | `float` (lo que produce un LLM en JSON) | `Decimal` cuantizado a 2 decimales (`ROUND_HALF_UP`) |
 | RUC / número | `str` libre | `^(10\|15\|17\|20)\d{9}$` / `^[FBE][A-Z0-9]{3}-\d{1,8}$` |
 | Campos extra | Prohibidos (`extra="forbid"`) | Prohibidos (`extra="forbid"`) |
@@ -28,7 +28,11 @@ Las facturas electrónicas peruanas (SUNAT) son un caso real de **cuentas por pa
 
 **Por qué el contrato permisivo valida solo estructura y tipos:** todo lo que falla en `FacturaExtraida` (JSON mal formado, `"total": "mil doscientos soles"`, `"fecha_emision": "15 de marzo"`, un enum fuera de rango o un campo inventado) **se puede corregir con un reintento**, porque el dato correcto está en el documento y el modelo solo lo expresó mal. En cambio, un RUC de 10 dígitos o un total que no cuadra **no se arreglan reintentando**: o el documento trae ese valor (error del emisor) o el dato no está. Si estas restricciones de valor estuvieran en el contrato permisivo, el sistema gastaría tokens reintentando algo que no tiene arreglo, o empujaría al modelo a "corregir" el documento, es decir, a alucinar. Por eso esas restricciones se evalúan como **reglas de negocio** en `validation.py`, que producen advertencias y el estado PARCIAL.
 
-**Por qué todos los campos aceptan `null`:** si un campo fuera obligatorio en el contrato con el LLM, el modelo tendría que rellenarlo aunque el documento no lo traiga, y eso es una alucinación forzada. Con `null` explícito, la ausencia de un dato se vuelve información verificable ("falta `ruc_cliente`") en vez de un valor inventado.
+**Por qué todos los campos aceptan `null`:** si un campo exigiera un valor no nulo en el contrato con el LLM, el modelo tendría que rellenarlo aunque el documento no lo traiga, y eso es una alucinación forzada. Con `null` explícito, la ausencia de un dato se vuelve información verificable ("falta `ruc_cliente`") en vez de un valor inventado.
+
+**Por qué obligatorios-nullable (`X | None` sin valor por defecto):** Structured Outputs de Cohere exige que **cada objeto del esquema tenga al menos un campo `required`**. En lugar de marcar uno solo de forma arbitraria, todos los campos van en `required` con `anyOf: [X, null]`. Así el contrato es explícito: el modelo debe pronunciarse sobre cada clave (valor o `null`), y una clave ausente es un `ValidationError` reintentable. `ItemFactura.descripcion` es la única clave no nullable: una línea de detalle sin descripción no tiene sentido.
+
+**Subconjunto de JSON Schema soportado:** Cohere no admite `minimum`/`maximum`, `exclusiveMinimum`/`exclusiveMaximum`, `minLength`/`maxLength`, `minItems`/`maxItems`, `allOf`/`oneOf`/`not` ni anclas `^`/`$` en `pattern`. El contrato permisivo no usa ninguna de ellas, porque **solo valida estructura y tipos**. Todas las restricciones de valor viven en las reglas de negocio. `test_schema.py` lo verifica automáticamente (tests `test_esquema_compatible_con_cohere_*`) y `python -m extractor esquema` lo comprueba al imprimir el esquema.
 
 ## 3. Campos
 

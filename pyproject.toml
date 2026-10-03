@@ -10,7 +10,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Javier Arbulu" }]
 dependencies = [
-    "anthropic==1.11.0",
+    "cohere==7.2.0",
+    "httpx==0.28.1",
     "pydantic==2.13.5",
     "pydantic-settings==2.15.0",
     "rich==15.0.0",
@@ -22,6 +23,7 @@ dev = [
     "pytest==9.1.1",
     "ruff==0.16.10",
     "jsonschema==4.26.0",
+    "python-dotenv==1.2.4",
 ]
 
 [project.scripts]
@@ -33,6 +35,10 @@ packages = ["src/extractor"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+filterwarnings = [
+    # Aviso interno del SDK de Cohere (usa __fields__ de Pydantic v1); no es de este proyecto.
+    "ignore:The `__fields__` attribute is deprecated:DeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 100

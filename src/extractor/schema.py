@@ -5,9 +5,10 @@ Este módulo NO importa nada del proyecto (verificado por test AST).
 Esquema doble:
 
 * :class:`FacturaExtraida` es el contrato con el LLM y es PERMISIVO. Valida solo
-  estructura y tipos (tipos de dato, enums y fechas ISO), todos los campos son
-  opcionales y ``None`` significa "no aparece en el documento". Todo lo que falla
-  aquí es corregible con un reintento.
+  estructura y tipos (tipos de dato, enums y fechas ISO), sin restricciones de
+  valor. Todos los campos son obligatorios-nullable: la clave siempre está y
+  ``None`` significa "no aparece en el documento". Todo lo que falla aquí es
+  corregible con un reintento.
 * :class:`FacturaValidada` es el contrato de negocio y es ESTRICTO: representa la
   fila lista para la base de datos (obligatorios no nulos, montos ``Decimal``,
   RUC y número con formato SUNAT).
@@ -110,6 +111,7 @@ class TipoError(StrEnum):
     JSON_INVALIDO = "JSON_INVALIDO"
     ESQUEMA_INVALIDO = "ESQUEMA_INVALIDO"
     RESPUESTA_TRUNCADA = "RESPUESTA_TRUNCADA"
+    FINALIZACION_INESPERADA = "FINALIZACION_INESPERADA"
 
 
 # ---------------------------------------------------------------------------
@@ -123,14 +125,12 @@ class ItemFactura(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     descripcion: str = Field(
-        description="Descripción del bien o servicio tal como figura en la línea de detalle."
+        description="Descripción del bien o servicio tal como figura en la línea de detalle.",
     )
     cantidad: float | None = Field(
-        default=None,
         description="Cantidad de unidades de la línea. null si no figura.",
     )
     precio_unitario: float | None = Field(
-        default=None,
         description=(
             "Valor unitario SIN IGV. Si el documento muestra a la vez 'valor unitario' "
             "(sin IGV) y 'precio unitario' (con IGV), usa el valor unitario sin IGV. "
@@ -138,7 +138,6 @@ class ItemFactura(BaseModel):
         ),
     )
     importe: float | None = Field(
-        default=None,
         description=(
             "Valor de venta de la línea sin IGV (normalmente cantidad x valor unitario), "
             "tal como figura en el documento. null si no figura."
@@ -149,9 +148,11 @@ class ItemFactura(BaseModel):
 class FacturaExtraida(BaseModel):
     """Datos de una factura SUNAT extraídos por el LLM.
 
-    Contrato permisivo: todos los campos son opcionales y ``None`` significa que
-    el dato no aparece (o es ilegible) en el documento. Así se evita forzar al
-    modelo a inventar valores.
+    Contrato permisivo: todos los campos son obligatorios-nullable. La clave debe
+    estar siempre (Cohere exige al menos un ``required`` por objeto y así el
+    esquema es explícito), pero el valor puede ser ``None``, que significa "no
+    aparece o es ilegible en el documento". Así se evita forzar al modelo a
+    inventar valores.
     """
 
     model_config = ConfigDict(
@@ -166,7 +167,6 @@ class FacturaExtraida(BaseModel):
     )
 
     tipo_documento: TipoDocumento | None = Field(
-        default=None,
         description=(
             "Tipo de comprobante: FACTURA (factura electrónica), BOLETA (boleta de venta), "
             "NOTA_CREDITO, u OTRO para cualquier documento que no sea un comprobante de pago "
@@ -174,7 +174,6 @@ class FacturaExtraida(BaseModel):
         ),
     )
     numero_factura: str | None = Field(
-        default=None,
         description=(
             "Número del comprobante en formato serie-correlativo, p. ej. F001-00012345: "
             "serie de 4 caracteres (empieza con F, B o E) y correlativo numérico. "
@@ -182,83 +181,69 @@ class FacturaExtraida(BaseModel):
         ),
     )
     fecha_emision: date | None = Field(
-        default=None,
         description=(
             "Fecha de emisión en formato ISO AAAA-MM-DD. El documento usa la convención "
             "peruana DD/MM/AAAA: 03/04/2026 es el 3 de abril de 2026. null si no aparece."
         ),
     )
     fecha_vencimiento: date | None = Field(
-        default=None,
         description=(
             "Fecha de vencimiento del pago en formato ISO AAAA-MM-DD (convención DD/MM/AAAA "
             "en el documento). null si no aparece."
         ),
     )
     ruc_emisor: str | None = Field(
-        default=None,
         description=(
             "RUC del emisor (proveedor): 11 dígitos, solo números, sin espacios ni guiones. "
             "null si no aparece o es ilegible; nunca lo completes ni lo adivines."
         ),
     )
     razon_social_emisor: str | None = Field(
-        default=None,
         description="Razón social del emisor (proveedor que emite la factura).",
     )
     ruc_cliente: str | None = Field(
-        default=None,
         description=(
             "RUC del cliente (adquirente): 11 dígitos, solo números. null si no aparece o es "
             "ilegible; nunca lo completes ni lo adivines."
         ),
     )
     razon_social_cliente: str | None = Field(
-        default=None,
         description="Razón social del cliente (adquirente o 'Señor(es)').",
     )
     moneda: Moneda | None = Field(
-        default=None,
         description="Moneda: PEN para S/, soles o PEN; USD para US$, $, dólares o USD.",
     )
     condicion_pago: CondicionPago | None = Field(
-        default=None,
         description=(
             "Forma de pago: CONTADO o CREDITO (incluye 'crédito a N días' o pago en cuotas). "
             "null si no aparece."
         ),
     )
     items: list[ItemFactura] | None = Field(
-        default=None,
         description="Líneas de detalle de la factura, en el orden del documento.",
     )
     descuento: float | None = Field(
-        default=None,
         description=(
             "Descuento GLOBAL en monto (no porcentaje), si el documento lo indica. "
             "No lo repartas entre los ítems. null si no hay descuento global."
         ),
     )
     subtotal: float | None = Field(
-        default=None,
         description=(
             "Base imponible sin IGV ('Op. Gravada', 'Valor de venta' o 'Subtotal'), "
             "después de descuentos. Número sin símbolo ni separador de miles."
         ),
     )
     igv: float | None = Field(
-        default=None,
         description="Monto del IGV (impuesto general a las ventas) tal como figura.",
     )
     total: float | None = Field(
-        default=None,
         description=(
             "Importe total del comprobante tal como figura, aunque no cuadre con el subtotal "
             "y el IGV. Número con punto decimal, sin símbolo ni separador de miles."
         ),
     )
     observaciones: str | None = Field(
-        default=None,
         description=(
             "Notas breves sobre ambigüedades, datos ilegibles o texto sospechoso ignorado. "
             "null si no hay nada que observar."
@@ -372,7 +357,7 @@ class Intento(BaseModel):
     tokens_salida: int = 0
     latencia_ms: int = 0
     uso_fallback: bool = False
-    stop_reason: str | None = None
+    finish_reason: str | None = None
     max_tokens: int | None = None
 
 

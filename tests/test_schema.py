@@ -82,9 +82,90 @@ def test_cada_campo_tiene_descripcion() -> None:
 # --- Contrato permisivo -----------------------------------------------------------
 
 
-def test_todos_los_campos_son_opcionales() -> None:
-    vacia = FacturaExtraida.model_validate({})
+def test_todos_los_campos_aceptan_null() -> None:
+    """Obligatorios-nullable: la clave debe estar, pero el valor puede ser None."""
+    nulos = {campo: None for campo in FacturaExtraida.model_fields}
+    vacia = FacturaExtraida.model_validate(nulos)
     assert all(valor is None for valor in vacia.model_dump().values())
+
+
+@pytest.mark.parametrize("campo", sorted(FacturaExtraida.model_fields))
+def test_clave_ausente_produce_validation_error(datos_validos: dict[str, Any], campo: str) -> None:
+    del datos_validos[campo]
+    with pytest.raises(ValidationError, match="Field required"):
+        FacturaExtraida.model_validate(datos_validos)
+
+
+def test_clave_ausente_en_item_produce_validation_error(datos_validos: dict[str, Any]) -> None:
+    del datos_validos["items"][0]["importe"]
+    with pytest.raises(ValidationError, match="Field required"):
+        FacturaExtraida.model_validate(datos_validos)
+
+
+# --- Compatibilidad con Structured Outputs de Cohere -----------------------------------
+
+NO_SOPORTADAS = {
+    "minimum",
+    "maximum",
+    "exclusiveMinimum",
+    "exclusiveMaximum",
+    "minLength",
+    "maxLength",
+    "minItems",
+    "maxItems",
+    "allOf",
+    "oneOf",
+    "not",
+}
+
+
+def _objetos_y_claves(nodo: Any, padre: str = "") -> tuple[list[dict], list[str], list[str]]:
+    """Recorre el esquema: objetos con propiedades, palabras clave usadas y patterns."""
+    objetos: list[dict] = []
+    claves: list[str] = []
+    patrones: list[str] = []
+    if isinstance(nodo, dict):
+        if nodo.get("type") == "object" and "properties" in nodo:
+            objetos.append(nodo)
+        for clave, valor in nodo.items():
+            es_mapa_de_nombres = clave in ("properties", "$defs")
+            if not es_mapa_de_nombres and padre not in ("properties", "$defs"):
+                claves.append(clave)
+            if clave == "pattern":
+                patrones.append(valor)
+            o, c, p = _objetos_y_claves(valor, clave)
+            objetos, claves, patrones = objetos + o, claves + c, patrones + p
+    elif isinstance(nodo, list):
+        for elemento in nodo:
+            o, c, p = _objetos_y_claves(elemento, padre)
+            objetos, claves, patrones = objetos + o, claves + c, patrones + p
+    return objetos, claves, patrones
+
+
+def test_esquema_compatible_con_cohere_nivel_superior_object() -> None:
+    assert FacturaExtraida.model_json_schema()["type"] == "object"
+
+
+def test_esquema_compatible_con_cohere_cada_objeto_tiene_required() -> None:
+    objetos, _, _ = _objetos_y_claves(FacturaExtraida.model_json_schema())
+    assert len(objetos) >= 2  # FacturaExtraida e ItemFactura
+    assert all(objeto.get("required") for objeto in objetos)
+
+
+def test_esquema_compatible_con_cohere_sin_palabras_clave_no_soportadas() -> None:
+    _, claves, patrones = _objetos_y_claves(FacturaExtraida.model_json_schema())
+    assert NO_SOPORTADAS.isdisjoint(claves)
+    assert all("^" not in p and "$" not in p for p in patrones)
+
+
+def test_campos_nullable_aparecen_en_required_con_anyof_null() -> None:
+    esquema = FacturaExtraida.model_json_schema()
+    assert set(esquema["required"]) == set(FacturaExtraida.model_fields)
+    for nombre, definicion in esquema["properties"].items():
+        assert {"type": "null"} in definicion["anyOf"], nombre
+    item = esquema["$defs"]["ItemFactura"]
+    assert set(item["required"]) == {"descripcion", "cantidad", "precio_unitario", "importe"}
+    assert item["properties"]["descripcion"]["type"] == "string"  # no nullable
 
 
 def test_extra_forbid_rechaza_campos_inventados(datos_validos: dict[str, Any]) -> None:

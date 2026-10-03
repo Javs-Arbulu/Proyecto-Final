@@ -1,0 +1,20 @@
+# Secretos: la API key vive SOLO en .env (nunca se versiona)
+.env
+.env.*
+!.env.example
+
+# Logs (pueden contener texto de documentos en nivel DEBUG)
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Sistema
+.DS_Store

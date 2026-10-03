@@ -49,8 +49,8 @@ Formato breve: **contexto → decisión → alternativas descartadas → consecu
 - **Decisión.**
   1. El esquema se mantiene dentro del subconjunto. `problemas_compatibilidad_cohere()` lo verifica y lo usan el comando `esquema` y los tests de compatibilidad de `test_schema.py`.
   2. El prompt de sistema incluye literalmente: *"Genera un único objeto JSON que cumpla el esquema indicado. Incluye todas las claves; usa null cuando el dato no aparezca en el documento."* (`PROMPT_VERSION = "2.0"`).
-  3. Se envía el esquema con `$defs`/`$ref` tal como lo genera Pydantic. `resolver_refs()` queda disponible (y probada) por si el proveedor rechazara las referencias.
-  4. Clave del esquema: la referencia de la API v2 y el tipo del SDK (`JsonObjectResponseFormatV2.json_schema`) usan **`json_schema`**. La guía de Structured Outputs muestra `schema`, que el SDK 7.2.0 marca como "experimental". Usamos `json_schema`.
+  3. Se envía el esquema con `$defs`/`$ref` tal como lo genera Pydantic. **Verificado con la API real (Fase 3, documentos 01–03): Cohere lo acepta sin errores**, así que no hizo falta resolver las referencias. `resolver_refs()` queda disponible (y probada) por si otro modelo o una versión futura las rechazara.
+  4. Clave del esquema: la referencia de la API v2 y el tipo del SDK (`JsonObjectResponseFormatV2.json_schema`) usan **`json_schema`**. La guía de Structured Outputs muestra `schema`, que el SDK 7.2.0 marca como "experimental". Usamos `json_schema`. **Verificado con una llamada de sondeo:** un esquema con un único `enum` (`"VALOR_SONDA_42"`) y un prompt que pedía otra cosa ("el clima de Lima") devolvió exactamente `{"clave_sonda_xyz": "VALOR_SONDA_42"}`, así que la API respeta `json_schema`.
 - **Consecuencias.** `FacturaValidada` puede seguir usando patrones con anclas y `Decimal`, porque nunca se envía al LLM.
 
 ## ADR-07 · Qué se reintenta y qué no

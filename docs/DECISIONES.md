@@ -21,6 +21,7 @@ Formato breve: **contexto → decisión → alternativas descartadas → consecu
 - **Alternativas descartadas.** Confiar en la promesa del proveedor y usar el JSON directamente.
 - **Por qué.** (1) Una respuesta cortada por `MAX_TOKENS` no cumple el esquema por definición, y la garantía no cubre ese caso. (2) La garantía depende de la implementación del proveedor, de su versión y del modelo configurado: un cambio en cualquiera de esos factores puede romperla sin que el código lo note. (3) Pydantic valida cosas que la decodificación restringida puede no garantizar igual (fechas ISO reales, como rechazar `2026-13-01`, y `extra="forbid"`). (4) El proyecto es independiente del proveedor: la misma capa de validación funcionó con el diseño anterior y funcionaría con otro (ADR-19). Es exactamente el "error común" n.° 1 que señala el enunciado.
 - **Consecuencias.** Cada intento pasa por la misma cadena de verificación (ADR-10). El costo es despreciable: validar con Pydantic toma microsegundos.
+- **Evidencia real.** En 27 extracciones reales sin inyección, Cohere produjo 0 respuestas fuera del esquema (`RESULTADOS.md` §4), consistente con su promesa. Por eso el camino de error se demuestra con inyección determinista (ADR-16), y la validación sigue siendo la que decide.
 
 ## ADR-03 · Esquema doble con campos nullable
 
@@ -132,7 +133,8 @@ Formato breve: **contexto → decisión → alternativas descartadas → consecu
   - `LimitadorTasa` garantiza al menos `INTERVALO_MIN_S = 3.1` s entre el inicio de dos llamadas (60/20 = 3 s, más un margen). El reloj y la función de espera son inyectables, así que el test no espera de verdad.
   - Los tests **nunca** llaman a la API (fakes y transporte HTTP simulado).
   - El trabajo se limitó a unas 5 corridas completas reales y la métrica "llamadas totales a la API" queda en el reporte.
-- **Consecuencias.** Un lote de 10 documentos con llamadas tarda al menos unos 30 s. El SDK puede hacer reintentos de transporte que no pasan por el limitador, pero respetan `Retry-After`.
+- **Consecuencias.** Un lote de 10 documentos con llamadas tarda al menos unos 30 s (en la práctica, alrededor de 1 minuto, por la latencia del modelo). El SDK puede hacer reintentos de transporte que no pasan por el limitador, pero respetan `Retry-After`. La métrica cuenta las llamadas hechas por el código, no los reintentos internos del SDK.
+- **Consumo real del trabajo completo:** **70 llamadas** (1 sondeo, 18 pruebas individuales y 3 corridas completas: oficial, `json_invalido` y `persistente`), es decir, el 7 % de la cuota mensual, sin ningún 429 (`RESULTADOS.md` §7).
 
 ## ADR-19 · Cambio de proveedor: Anthropic → Cohere
 

@@ -1,0 +1,12 @@
+archivo,estado,motivos,campos_faltantes,advertencias,n_intentos,tokens_entrada,tokens_salida,latencia_ms,simulacion,numero_factura,fecha_emision,ruc_emisor,moneda,total
+01_factura_estandar.txt,EXITOSO,OK,,,3,6321,1197,14954,json_invalido,F001-00004587,2026-09-15,20615487303,PEN,2209.55
+02_factura_usd_credito.txt,EXITOSO,OK,,,3,6110,1089,16474,json_invalido,F002-00001163,2026-04-03,20602845196,USD,4495.80
+03_correo_proveedor.txt,EXITOSO,OK,,,3,5924,858,11075,json_invalido,F005-00000871,2026-08-28,20509176349,PEN,4071.00
+04_formato_inusual.txt,EXITOSO,OK,,,3,5960,1280,17589,json_invalido,F003-0001209,2026-07-22,20521640973,PEN,11845.78
+05_factura_larga.txt,EXITOSO,OK,,,3,7795,2733,31354,json_invalido,F010-00023876,2026-06-05,20603911788,PEN,5523.84
+06_incompleta_ocr.txt,PARCIAL,CAMPOS_OBLIGATORIOS_FALTANTES,fecha_emision;ruc_cliente,,3,5856,1050,14795,json_invalido,F004-00000318,,20606477311,PEN,2826.1
+07_totales_inconsistentes.txt,PARCIAL,REGLA_NEGOCIO,,TOTALES_INCONSISTENTES,3,5649,1095,14214,json_invalido,F001-00000932,2026-09-02,20497351808,PEN,1870.0
+08_no_es_factura.txt,FALLIDO,FUERA_DE_DOMINIO,,,3,5954,493,7520,json_invalido,,,,,
+09_prompt_injection.txt,EXITOSO,OK,,,3,5890,1174,14956,json_invalido,F007-00000415,2026-09-21,20472638517,PEN,9440.00
+10_ilegible.txt,FALLIDO,EXTRACCION_INSUFICIENTE,fecha_emision;moneda;numero_factura;razon_social_emisor;ruc_cliente;total,,3,6091,514,7655,json_invalido,,,20123456789,,
+11_vacio.txt,FALLIDO,DOCUMENTO_VACIO,,,0,0,0,0,,,,,,

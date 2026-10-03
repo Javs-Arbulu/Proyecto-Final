@@ -324,7 +324,7 @@ def generar_markdown(resultados, metricas, metadatos) -> str:
             "",
             "## Exactitud por campo clave",
             "",
-            "| Campo | Aciertos | %",
+            "| Campo | Aciertos | % |",
             "|---|---|---|",
         ]
         lineas += [

@@ -1,0 +1,26 @@
+MOBILIARIO CORPORATIVO ICHU E.I.R.L.            RUC    20521640973
+Jr. Ica 455 - Huancayo - Junín
+                                      FACTURA   ELECTRONICA
+                                      Nro.    F003 - 0001209
+
+Lugar y fecha de emisión: Huancayo, 22 de julio del 2026
+Vence el: 21 de agosto del 2026              Cond. pago: crédito 30 días
+Cliente ..........: ESTUDIO CONTABLE RÍMAC ASOCIADOS S. CIVIL DE R.L.
+RUC cliente ......: 20455809235
+Moneda ...........: Soles
+
+DETALLE
+Cant      Descripción                                Valor unit.          Importe
+6     Escritorio melamina 1.20 m color
+      roble con cajonera                        S/ 485,00          S/ 2.910,00
+   12        Silla ergonómica malla negra con apoyabrazos
+                                                     S/ 389,90     S/ 4.678,80
+4    Archivador metálico 4 gavetas          S/ 612,50
+                                                                   S/ 2.450,00
+
+                          Sub total ............    S/ 10.038,80
+                          I.G.V. 18% ...........     S/ 1.806,98
+                          TOTAL ................    S/ 11.845,78
+
+Son: once mil ochocientos cuarenta y cinco con 78/100 soles
+Plazo de entrega: 7 días hábiles.   Garantía: 12 meses por defectos de fabricación.

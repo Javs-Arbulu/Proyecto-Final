@@ -1,0 +1,45 @@
+DISTRIBUIDORA PAPELERA AMANCAY S.A.C.
+Av. Argentina 2235, Int. 12 - Cercado de Lima
+RUC 20603911788 | Central: (01) 555-0277
+
+FACTURA ELECTRÓNICA   F010-00023876
+
+Fecha de emisión: 05/06/2026          Fecha de vencimiento: 20/06/2026
+Forma de pago: Crédito (15 días)      Moneda: PEN - Soles
+Cliente: INSTITUTO TÉCNICO HORIZONTE ANDINO S.A.C.
+RUC: 20518022460
+Dirección: Av. Separadora Industrial 1890 - Ate - Lima
+Guía de remisión: T001-00008841       Vendedor: J. Quispe
+
+N°  Código    Descripción                                  Cant.  Unid.    V. Unit.   Valor Venta
+01  PB-A475   Papel bond A4 75 g (millar)                    40   MLL       24.50        980.00
+02  TN-C26    Tóner compatible LJ-26 negro                    8   UND      145.00      1,160.00
+03  LP-AZ50   Lapicero tinta seca azul (caja x 50)           10   CJA       32.00        320.00
+04  FM-A4C    Folder manila A4 (paquete x 100)               12   PQT       28.50        342.00
+05  AR-LA     Archivador de palanca lomo ancho               60   UND        7.80        468.00
+06  CE-48     Cinta de embalaje transparente 48 mm           36   UND        4.20        151.20
+07  GR-266    Grapas 26/6 (caja x 5000)                      20   CJA        5.90        118.00
+08  RS-X4     Resaltador fosforescente (set x 4)             25   SET        9.60        240.00
+09  CU-A4C    Cuaderno A4 cuadriculado 100 hojas             50   UND        6.40        320.00
+10  NA-33     Notas adhesivas 3x3 (pack x 12)                15   PQT       21.00        315.00
+11  SM-A4     Sobre manila A4 (paquete x 50)                 10   PQT       18.40        184.00
+12  CA-12D    Calculadora de escritorio 12 dígitos            6   UND       54.90        329.40
+
+                                           Total valor de venta:     S/ 4,927.60
+                                           Descuento global (5%):    S/   246.38
+                                           Op. gravada:              S/ 4,681.22
+                                           IGV (18%):                S/   842.62
+                                           Importe total:            S/ 5,523.84
+
+SON: CINCO MIL QUINIENTOS VEINTITRÉS CON 84/100 SOLES
+
+CONDICIONES Y NOTAS LEGALES
+1. Representación impresa de la Factura Electrónica generada desde el sistema del
+   contribuyente. Puede verificarla en www.amancay-ficticio.pe/comprobantes.
+2. El descuento global corresponde a la campaña escolar y se aplica sobre el total del
+   valor de venta; no modifica los valores unitarios de cada ítem.
+3. Los reclamos por faltantes o mercadería dañada deben presentarse dentro de las 48 horas
+   de recibida la mercadería, adjuntando la guía de remisión correspondiente.
+4. Vencido el plazo de crédito se aplicarán intereses moratorios conforme a la tasa máxima
+   permitida por el Banco Central de Reserva del Perú.
+5. Operación no sujeta a detracción ni a retención del IGV.

@@ -1,0 +1,19 @@
+CLIMATIZACIÓN BRISA COSTERA S.A.C.
+Calle Los Pinos 230 - Miraflores - Lima            RUC: 20497351808
+
+FACTURA ELECTRÓNICA N° F001-00000932
+Emisión: 02/09/2026
+Cliente: CLÍNICA DENTAL SONRISA PLENA S.A.C.       RUC: 20583209640
+Moneda: Soles (S/)        Pago: Contado
+
+Descripción                                                 Cant.   V. Unitario   Valor de Venta
+Mantenimiento preventivo de equipo de aire acondicionado       4        280.00         1,120.00
+split de 24 000 BTU (limpieza y revisión eléctrica)
+Recarga de gas refrigerante R-410A                             4         95.00           380.00
+
+                                       Subtotal:      S/ 1,500.00
+                                       IGV 18%:       S/   270.00
+                                       Total:         S/ 1,870.00
+
+SON: MIL OCHOCIENTOS SETENTA CON 00/100 SOLES
+Garantía del servicio: 90 días.

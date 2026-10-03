@@ -1,0 +1,35 @@
+                    SUMINISTROS INDUSTRIALES QUILLA S.A.C.
+          Av. Los Precursores 1458, Urb. Santa Luisa - Los Olivos - Lima
+                Telf.: (01) 555-0148   ventas@quilla-ficticio.pe
+
+                                        +--------------------------------+
+                                        |     R.U.C. N° 20615487303      |
+                                        |      FACTURA ELECTRÓNICA       |
+                                        |         F001-00004587          |
+                                        +--------------------------------+
+
+Fecha de Emisión       : 15/09/2026
+Señor(es)              : CONSTRUCTORA LOS ALGARROBOS S.A.
+R.U.C.                 : 20593712464
+Dirección del Cliente  : Jr. Huallaga 320 Of. 504 - Cercado de Lima - Lima
+Tipo de Moneda         : SOLES
+Forma de Pago          : Contado
+Observación            : Entrega en obra Residencial Los Pinos, Comas
+
+--------------------------------------------------------------------------------------------
+ CANT.  UNID.  DESCRIPCIÓN                                V. UNITARIO  P. UNITARIO  VALOR VENTA
+--------------------------------------------------------------------------------------------
+    20  UND    Casco de seguridad dieléctrico clase E           38.50        45.43       770.00
+    15  CJA    Guantes de nitrilo talla L (caja x 100)          42.00        49.56       630.00
+    25  UND    Chaleco reflectivo de alta visibilidad           18.90        22.30       472.50
+--------------------------------------------------------------------------------------------
+                                                 Op. Gravada          S/      1,872.50
+                                                 Op. Exonerada        S/          0.00
+                                                 Op. Inafecta         S/          0.00
+                                                 I.G.V. (18%)         S/        337.05
+                                                 IMPORTE TOTAL        S/      2,209.55
+
+SON: DOS MIL DOSCIENTOS NUEVE CON 55/100 SOLES
+
+Representación impresa de la Factura Electrónica.
+Consulte su documento en www.quilla-ficticio.pe/cpe

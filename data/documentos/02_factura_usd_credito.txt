@@ -1,0 +1,31 @@
+TECNOLOGÍAS PACÍFICO NORTE S.A.
+Calle Las Begonias 875, Piso 7 - San Isidro - Lima
+RUC: 20602845196
+
+FACTURA ELECTRÓNICA
+Serie y número: F002-00001163
+
+Fecha de emisión:       03/04/2026
+Fecha de vencimiento:   03/05/2026
+Moneda:                 DÓLARES AMERICANOS
+Condición de pago:      Crédito a 30 días
+
+Adquirente:             AGROEXPORTADORA VALLE VERDE S.A.C.
+RUC del adquirente:     20488163021
+Dirección:              Carretera Panamericana Sur Km 291 - Ica
+Orden de compra:        OC-2026-0347
+
+Item  Código    Descripción                                         Cant.   V. Unit. (US$)   Valor Venta (US$)
+1     LIC-MON   Licencia anual plataforma de monitoreo de cultivos      1         2,450.00            2,450.00
+2     SRV-IMP   Servicio de implementación y capacitación (horas)      16            85.00            1,360.00
+
+                                                            Valor de venta:    US$ 3,810.00
+                                                            IGV 18%:           US$   685.80
+                                                            Total a pagar:     US$ 4,495.80
+
+Información del crédito
+  Monto neto pendiente de pago: US$ 4,495.80
+  Total de cuotas: 1
+  Cuota 001 - Fecha de vencimiento: 03/05/2026 - Monto: US$ 4,495.80
+
+SON: CUATRO MIL CUATROCIENTOS NOVENTA Y CINCO CON 80/100 DÓLARES AMERICANOS

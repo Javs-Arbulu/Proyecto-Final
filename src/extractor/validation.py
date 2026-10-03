@@ -19,15 +19,33 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
+from typing import Any
 
 from pydantic import ValidationError
 
 from extractor.config import TOPE_MAX_TOKENS, Settings
 from extractor.extraction import SYSTEM_PROMPT, construir_mensaje_usuario, esquema_para_llm
 from extractor.llm_client import FINALIZACIONES_NORMALES, ClienteLLM, ErrorAPI, RespuestaLLM
-from extractor.schema import CodigoMotivo, FacturaExtraida, Intento, TipoError
+from extractor.schema import (
+    CAMPOS_CRITICOS,
+    CAMPOS_OBLIGATORIOS,
+    PATRON_NUMERO_FACTURA,
+    PATRON_RUC,
+    Advertencia,
+    CodigoAdvertencia,
+    CodigoMotivo,
+    CondicionPago,
+    EstadoExtraccion,
+    FacturaExtraida,
+    FacturaValidada,
+    Intento,
+    TipoDocumento,
+    TipoError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -279,3 +297,295 @@ def extraer_con_reintentos(
         f"{NOMBRE_ERROR[ultimo_error]}: {intentos[-1].detalle_error}"
     )
     return ResultadoExtraccion(None, intentos, MOTIVO_POR_ERROR[ultimo_error], detalle)
+
+
+# ---------------------------------------------------------------------------
+# Reglas de negocio y clasificación (esta etapa NO reintenta)
+# ---------------------------------------------------------------------------
+
+TASA_IGV = 0.18
+TOLERANCIA_RELATIVA = 0.005
+UMBRAL_OBLIGATORIOS_FALTANTES = 0.5
+ANIO_MINIMO = 2000
+_RUC = re.compile(PATRON_RUC)
+_NUMERO = re.compile(PATRON_NUMERO_FACTURA)
+_SEPARADORES = re.compile(r"[\s\-–—.]")
+
+
+@dataclass
+class Evaluacion:
+    """Resultado de aplicar reglas de negocio y clasificación a una extracción válida."""
+
+    estado: EstadoExtraccion
+    motivos: list[CodigoMotivo]
+    detalle: str
+    campos_faltantes: list[str] = field(default_factory=list)
+    advertencias: list[Advertencia] = field(default_factory=list)
+    datos: dict[str, Any] | None = None
+
+
+def _presente(valor: object) -> bool:
+    """Un campo está presente si no es None ni un texto vacío."""
+    return valor is not None and not (isinstance(valor, str) and not valor.strip())
+
+
+def campos_faltantes(factura: FacturaExtraida, campos: frozenset[str]) -> list[str]:
+    """Campos de ``campos`` que no están presentes en la factura (orden alfabético)."""
+    return sorted(campo for campo in campos if not _presente(getattr(factura, campo)))
+
+
+def _tolerancia_relativa(subtotal: float, tolerancia: float) -> float:
+    return max(tolerancia, TOLERANCIA_RELATIVA * abs(subtotal))
+
+
+def _advertencia(codigo: CodigoAdvertencia, mensaje: str) -> list[Advertencia]:
+    return [Advertencia(codigo=codigo, mensaje=mensaje)]
+
+
+def regla_ruc_formato(factura: FacturaExtraida) -> list[Advertencia]:
+    """RUC_FORMATO: algún RUC no cumple ``^(10|15|17|20)\\d{9}$``."""
+    malos = [
+        f"{campo}={valor!r}"
+        for campo in ("ruc_emisor", "ruc_cliente")
+        if _presente(valor := getattr(factura, campo)) and not _RUC.fullmatch(valor.strip())
+    ]
+    if not malos:
+        return []
+    return _advertencia(
+        CodigoAdvertencia.RUC_FORMATO, f"RUC con formato inválido: {', '.join(malos)}"
+    )
+
+
+def regla_numero_formato(factura: FacturaExtraida) -> list[Advertencia]:
+    """NUMERO_FORMATO: el número no cumple ``^[FBE][A-Z0-9]{3}-\\d{1,8}$``."""
+    numero = factura.numero_factura
+    if not _presente(numero) or _NUMERO.fullmatch(numero.strip()):
+        return []
+    return _advertencia(
+        CodigoAdvertencia.NUMERO_FORMATO, f"número con formato inválido: {numero!r}"
+    )
+
+
+def regla_fechas_incoherentes(factura: FacturaExtraida) -> list[Advertencia]:
+    """FECHAS_INCOHERENTES: el vencimiento es anterior a la emisión."""
+    emision, vencimiento = factura.fecha_emision, factura.fecha_vencimiento
+    if emision is None or vencimiento is None or vencimiento >= emision:
+        return []
+    return _advertencia(
+        CodigoAdvertencia.FECHAS_INCOHERENTES,
+        f"vencimiento {vencimiento} anterior a la emisión {emision}",
+    )
+
+
+def regla_fecha_fuera_de_rango(factura: FacturaExtraida, hoy: date) -> list[Advertencia]:
+    """FECHA_FUERA_DE_RANGO: SOLO la emisión, si es futura o anterior a 2000."""
+    emision = factura.fecha_emision
+    if emision is None or ANIO_MINIMO <= emision.year and emision <= hoy:
+        return []
+    return _advertencia(
+        CodigoAdvertencia.FECHA_FUERA_DE_RANGO,
+        f"fecha de emisión {emision} futura o anterior a {ANIO_MINIMO}",
+    )
+
+
+def regla_totales(factura: FacturaExtraida, tolerancia: float) -> list[Advertencia]:
+    """TOTALES_INCONSISTENTES: ``abs(subtotal + igv - total) > tolerancia``."""
+    subtotal, igv, total = factura.subtotal, factura.igv, factura.total
+    if subtotal is None or igv is None or total is None:
+        return []
+    diferencia = abs(subtotal + igv - total)
+    if diferencia <= tolerancia:
+        return []
+    return _advertencia(
+        CodigoAdvertencia.TOTALES_INCONSISTENTES,
+        f"subtotal {subtotal:.2f} + IGV {igv:.2f} = {subtotal + igv:.2f} ≠ total {total:.2f}",
+    )
+
+
+def regla_igv(factura: FacturaExtraida, tolerancia: float) -> list[Advertencia]:
+    """IGV_NO_18: ``abs(igv - 0.18 * subtotal) > max(tolerancia, 0.005 * subtotal)``."""
+    subtotal, igv = factura.subtotal, factura.igv
+    if subtotal is None or igv is None:
+        return []
+    esperado = TASA_IGV * subtotal
+    if abs(igv - esperado) <= _tolerancia_relativa(subtotal, tolerancia):
+        return []
+    return _advertencia(
+        CodigoAdvertencia.IGV_NO_18,
+        f"IGV {igv:.2f} distinto del 18 % del subtotal ({esperado:.2f}); ¿operación exonerada?",
+    )
+
+
+def _importe_item(
+    cantidad: float | None, precio: float | None, importe: float | None
+) -> float | None:
+    """Importe de la línea; si falta, ``cantidad * precio_unitario``; si no se puede, None."""
+    if importe is not None:
+        return importe
+    if cantidad is not None and precio is not None:
+        return cantidad * precio
+    return None
+
+
+def regla_items(factura: FacturaExtraida, tolerancia: float) -> list[Advertencia]:
+    """ITEMS_NO_CUADRAN: la suma de ítems menos el descuento no cuadra con el subtotal.
+
+    Fórmula: ``abs(suma_importes - (descuento or 0) - subtotal) > max(tol, 0.005 * subtotal)``.
+    Se omite si no hay ítems o si algún ítem no permite calcular su importe.
+    """
+    if not factura.items or factura.subtotal is None:
+        return []
+    importes = [_importe_item(i.cantidad, i.precio_unitario, i.importe) for i in factura.items]
+    if any(importe is None for importe in importes):
+        return []
+    suma = sum(importe for importe in importes if importe is not None)
+    descuento = factura.descuento or 0
+    diferencia = abs(suma - descuento - factura.subtotal)
+    if diferencia <= _tolerancia_relativa(factura.subtotal, tolerancia):
+        return []
+    return _advertencia(
+        CodigoAdvertencia.ITEMS_NO_CUADRAN,
+        f"Σ ítems {suma:.2f} - descuento {descuento:.2f} ≠ subtotal {factura.subtotal:.2f}",
+    )
+
+
+def regla_credito_sin_vencimiento(factura: FacturaExtraida) -> list[Advertencia]:
+    """CREDITO_SIN_VENCIMIENTO: venta a crédito sin fecha de vencimiento."""
+    if factura.condicion_pago is not CondicionPago.CREDITO or factura.fecha_vencimiento:
+        return []
+    return _advertencia(
+        CodigoAdvertencia.CREDITO_SIN_VENCIMIENTO, "condición CREDITO sin fecha de vencimiento"
+    )
+
+
+def regla_monto_no_positivo(factura: FacturaExtraida) -> list[Advertencia]:
+    """MONTO_NO_POSITIVO: total o subtotal ≤ 0, o ítem con cantidad ≤ 0 o precio < 0."""
+    problemas = [
+        f"{campo}={valor}"
+        for campo in ("total", "subtotal")
+        if (valor := getattr(factura, campo)) is not None and valor <= 0
+    ]
+    for indice, item in enumerate(factura.items or [], start=1):
+        if item.cantidad is not None and item.cantidad <= 0:
+            problemas.append(f"ítem {indice} cantidad={item.cantidad}")
+        if item.precio_unitario is not None and item.precio_unitario < 0:
+            problemas.append(f"ítem {indice} precio_unitario={item.precio_unitario}")
+    if not problemas:
+        return []
+    return _advertencia(CodigoAdvertencia.MONTO_NO_POSITIVO, "; ".join(problemas))
+
+
+def _compactar(texto: str) -> str:
+    return _SEPARADORES.sub("", texto).upper()
+
+
+def numero_anclado(numero: str, texto: str) -> bool:
+    """True si el número aparece en el texto.
+
+    Normaliza espacios, guiones y ceros a la izquierda del correlativo.
+    """
+    partes = re.fullmatch(r"\s*([A-Z0-9]{4})\s*[-–—]?\s*0*(\d+)\s*", numero.upper())
+    if partes is None:
+        return _compactar(numero) in _compactar(texto)
+    serie, correlativo = partes.groups()
+    patron = rf"{re.escape(serie)}[\s\-–—]*0*{correlativo}(?!\d)"
+    return re.search(patron, texto.upper()) is not None
+
+
+def regla_anclaje(factura: FacturaExtraida, texto_original: str) -> list[Advertencia]:
+    """POSIBLE_ALUCINACION: número o algún RUC no aparece literalmente en el texto."""
+    no_anclados = []
+    if _presente(factura.numero_factura) and not numero_anclado(
+        factura.numero_factura, texto_original
+    ):
+        no_anclados.append(f"numero_factura={factura.numero_factura!r}")
+    for campo in ("ruc_emisor", "ruc_cliente"):
+        valor = getattr(factura, campo)
+        if _presente(valor) and _compactar(valor) not in _compactar(texto_original):
+            no_anclados.append(f"{campo}={valor!r}")
+    if not no_anclados:
+        return []
+    return _advertencia(
+        CodigoAdvertencia.POSIBLE_ALUCINACION,
+        f"valores que no aparecen en el documento: {', '.join(no_anclados)}",
+    )
+
+
+def aplicar_reglas(
+    factura: FacturaExtraida, texto_original: str, tolerancia: float, hoy: date
+) -> list[Advertencia]:
+    """Aplica todas las reglas de negocio; cada una solo si sus campos están presentes."""
+    return [
+        *regla_ruc_formato(factura),
+        *regla_numero_formato(factura),
+        *regla_fechas_incoherentes(factura),
+        *regla_fecha_fuera_de_rango(factura, hoy),
+        *regla_totales(factura, tolerancia),
+        *regla_igv(factura, tolerancia),
+        *regla_items(factura, tolerancia),
+        *regla_credito_sin_vencimiento(factura),
+        *regla_monto_no_positivo(factura),
+        *regla_anclaje(factura, texto_original),
+    ]
+
+
+def evaluar(
+    extraida: FacturaExtraida,
+    texto_original: str,
+    settings: Settings,
+    hoy: date | None = None,
+) -> Evaluacion:
+    """Clasifica una extracción válida en EXITOSO, PARCIAL o FALLIDO (sin reintentar).
+
+    Precedencia: fuera de dominio → extracción insuficiente → reglas de negocio →
+    contrato estricto (:class:`FacturaValidada`).
+    """
+    datos = extraida.model_dump(mode="json")
+    if extraida.tipo_documento is not TipoDocumento.FACTURA:
+        tipo = extraida.tipo_documento.value if extraida.tipo_documento else "null"
+        detalle = f"el documento no es una factura (tipo_documento detectado: {tipo})"
+        return Evaluacion(
+            EstadoExtraccion.FALLIDO, [CodigoMotivo.FUERA_DE_DOMINIO], detalle, datos=datos
+        )
+    faltantes = campos_faltantes(extraida, CAMPOS_OBLIGATORIOS)
+    criticos = [campo for campo in faltantes if campo in CAMPOS_CRITICOS]
+    if criticos or len(faltantes) > UMBRAL_OBLIGATORIOS_FALTANTES * len(CAMPOS_OBLIGATORIOS):
+        detalle = (
+            f"faltan campos críticos {criticos}"
+            if criticos
+            else f"faltan {len(faltantes)} de {len(CAMPOS_OBLIGATORIOS)} campos obligatorios"
+        )
+        return Evaluacion(
+            EstadoExtraccion.FALLIDO,
+            [CodigoMotivo.EXTRACCION_INSUFICIENTE],
+            detalle,
+            faltantes,
+            datos=datos,
+        )
+    advertencias = aplicar_reglas(
+        extraida, texto_original, settings.tolerancia_montos, hoy or date.today()
+    )
+    if faltantes or advertencias:
+        motivos = [CodigoMotivo.CAMPOS_OBLIGATORIOS_FALTANTES] if faltantes else []
+        motivos += [CodigoMotivo.REGLA_NEGOCIO] if advertencias else []
+        partes = [f"faltan {faltantes}"] if faltantes else []
+        partes += [f"advertencias {[a.codigo.value for a in advertencias]}"] if advertencias else []
+        detalle = "requiere revisión humana: " + "; ".join(partes)
+        return Evaluacion(
+            EstadoExtraccion.PARCIAL, motivos, detalle, faltantes, advertencias, datos
+        )
+    try:
+        validada = FacturaValidada.model_validate(extraida.model_dump())
+    except ValidationError as error:
+        detalle = "no cumple el contrato estricto: " + "; ".join(
+            formatear_errores_validacion(error)
+        )
+        return Evaluacion(
+            EstadoExtraccion.PARCIAL, [CodigoMotivo.REGLA_NEGOCIO], detalle, datos=datos
+        )
+    return Evaluacion(
+        EstadoExtraccion.EXITOSO,
+        [CodigoMotivo.OK],
+        "factura válida y lista para registrar",
+        datos=validada.model_dump(mode="json"),
+    )

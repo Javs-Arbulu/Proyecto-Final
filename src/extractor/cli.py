@@ -15,8 +15,8 @@ from extractor.config import ConfiguracionInvalida, Settings, cargar_settings
 from extractor.extraction import esquema_para_llm, problemas_compatibilidad_cohere
 from extractor.fault_injection import ClienteConFallas, ModoFallo
 from extractor.llm_client import ClienteCohere, ClienteLLM, ErrorAutenticacion
-from extractor.schema import Intento
-from extractor.validation import describir_intento, extraer_con_reintentos
+from extractor.schema import EstadoExtraccion, Intento
+from extractor.validation import Evaluacion, describir_intento, evaluar, extraer_con_reintentos
 
 # pretty_exceptions_show_locals=False: un traceback "bonito" con variables locales
 # podría exponer la API key. Nunca se muestran locales.
@@ -60,6 +60,23 @@ def crear_cliente(settings: Settings) -> ClienteLLM:
     )
 
 
+COLOR_ESTADO = {
+    EstadoExtraccion.EXITOSO: "green",
+    EstadoExtraccion.PARCIAL: "yellow",
+    EstadoExtraccion.FALLIDO: "red",
+}
+
+
+def _imprimir_evaluacion(evaluacion: Evaluacion) -> None:
+    color = COLOR_ESTADO[evaluacion.estado]
+    motivos = ", ".join(m.value for m in evaluacion.motivos)
+    consola.print(f"[bold {color}]{evaluacion.estado.value}[/] · {motivos} · {evaluacion.detalle}")
+    if evaluacion.campos_faltantes:
+        consola.print(f"  campos faltantes: {', '.join(evaluacion.campos_faltantes)}")
+    for advertencia in evaluacion.advertencias:
+        consola.print(f"  [yellow]⚠ {advertencia.codigo.value}[/]: {advertencia.mensaje}")
+
+
 def _imprimir_intento(intento: Intento, max_intentos: int, se_reintentara: bool) -> None:
     color = "green" if intento.ok else ("yellow" if se_reintentara else "red")
     consola.print(f"  [{color}]{describir_intento(intento, max_intentos, se_reintentara)}[/]")
@@ -99,8 +116,9 @@ def extraer(
     if resultado.factura is None:
         consola.print(f"[bold red]FALLIDO · {resultado.motivo_fallo}[/]: {resultado.detalle}")
         raise typer.Exit(code=1)
-    datos = resultado.factura.model_dump(mode="json")
-    consola.print(Syntax(json.dumps(datos, ensure_ascii=False, indent=2), "json"))
+    evaluacion = evaluar(resultado.factura, texto, settings)
+    consola.print(Syntax(json.dumps(evaluacion.datos, ensure_ascii=False, indent=2), "json"))
+    _imprimir_evaluacion(evaluacion)
 
 
 @app.command()

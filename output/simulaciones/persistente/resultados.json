@@ -1,6 +1,6 @@
 {
   "metadatos": {
-    "timestamp": "2026-10-03T18:54:02-05:00",
+    "timestamp": "2026-10-04T10:18:41-05:00",
     "proveedor": "cohere",
     "modelo": "command-a-03-2025",
     "prompt_version": "2.0",
@@ -33,8 +33,8 @@
     "docs_con_reintento": 1,
     "llamadas_api_totales": 11,
     "tokens_entrada_totales": 21892,
-    "tokens_salida_totales": 4141,
-    "latencia_promedio_ms": 5724,
+    "tokens_salida_totales": 4129,
+    "latencia_promedio_ms": 5551,
     "motivos_por_codigo": {
       "JSON_INVALIDO_REINTENTOS_AGOTADOS": 1,
       "CAMPOS_OBLIGATORIOS_FALTANTES": 1,
@@ -412,7 +412,7 @@
           "detalle_error": null,
           "tokens_entrada": 2045,
           "tokens_salida": 399,
-          "latencia_ms": 5368,
+          "latencia_ms": 5500,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -421,7 +421,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 2045,
       "tokens_salida_total": 399,
-      "latencia_ms_total": 5368,
+      "latencia_ms_total": 5500,
       "simulacion": null
     },
     {
@@ -472,7 +472,7 @@
           "detalle_error": null,
           "tokens_entrada": 1974,
           "tokens_salida": 363,
-          "latencia_ms": 4765,
+          "latencia_ms": 6006,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -481,7 +481,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1974,
       "tokens_salida_total": 363,
-      "latencia_ms_total": 4765,
+      "latencia_ms_total": 6006,
       "simulacion": null
     },
     {
@@ -502,7 +502,7 @@
           "detalle_error": "JSON inválido: Expecting value (línea 10, columna 13)",
           "tokens_entrada": 1912,
           "tokens_salida": 294,
-          "latencia_ms": 3806,
+          "latencia_ms": 3622,
           "uso_fallback": true,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -514,7 +514,7 @@
           "detalle_error": "JSON inválido: Unterminated string starting at (línea 10, columna 3)",
           "tokens_entrada": 2005,
           "tokens_salida": 282,
-          "latencia_ms": 5905,
+          "latencia_ms": 3642,
           "uso_fallback": true,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -523,7 +523,7 @@
       "llamadas_api": 2,
       "tokens_entrada_total": 3917,
       "tokens_salida_total": 576,
-      "latencia_ms_total": 9711,
+      "latencia_ms_total": 7264,
       "simulacion": "persistente"
     },
     {
@@ -570,7 +570,7 @@
         "subtotal": "10038.80",
         "igv": "1806.98",
         "total": "11845.78",
-        "observaciones": "Valores unitarios no especificados en el documento."
+        "observaciones": null
       },
       "intentos": [
         {
@@ -579,8 +579,8 @@
           "tipo_error": null,
           "detalle_error": null,
           "tokens_entrada": 1922,
-          "tokens_salida": 429,
-          "latencia_ms": 8029,
+          "tokens_salida": 418,
+          "latencia_ms": 5573,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -588,8 +588,8 @@
       ],
       "llamadas_api": 1,
       "tokens_entrada_total": 1922,
-      "tokens_salida_total": 429,
-      "latencia_ms_total": 8029,
+      "tokens_salida_total": 418,
+      "latencia_ms_total": 5573,
       "simulacion": null
     },
     {
@@ -700,7 +700,7 @@
           "detalle_error": null,
           "tokens_entrada": 2537,
           "tokens_salida": 911,
-          "latencia_ms": 10922,
+          "latencia_ms": 11232,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -709,7 +709,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 2537,
       "tokens_salida_total": 911,
-      "latencia_ms_total": 10922,
+      "latencia_ms_total": 11232,
       "simulacion": null
     },
     {
@@ -753,7 +753,7 @@
         "subtotal": 2395.0,
         "igv": 431.1,
         "total": 2826.1,
-        "observaciones": "RUC del cliente y fecha de emisión ilegibles. Texto con caracteres especiales y borrosos."
+        "observaciones": "RUC del cliente y fecha de emisión ilegibles. Texto con caracteres extraños ignorados."
       },
       "intentos": [
         {
@@ -762,8 +762,8 @@
           "tipo_error": null,
           "detalle_error": null,
           "tokens_entrada": 1888,
-          "tokens_salida": 360,
-          "latencia_ms": 4641,
+          "tokens_salida": 359,
+          "latencia_ms": 4381,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -771,8 +771,8 @@
       ],
       "llamadas_api": 1,
       "tokens_entrada_total": 1888,
-      "tokens_salida_total": 360,
-      "latencia_ms_total": 4641,
+      "tokens_salida_total": 359,
+      "latencia_ms_total": 4381,
       "simulacion": null
     },
     {
@@ -828,7 +828,7 @@
           "detalle_error": null,
           "tokens_entrada": 1819,
           "tokens_salida": 377,
-          "latencia_ms": 4411,
+          "latencia_ms": 7018,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -837,7 +837,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1819,
       "tokens_salida_total": 377,
-      "latencia_ms_total": 4411,
+      "latencia_ms_total": 7018,
       "simulacion": null
     },
     {
@@ -865,7 +865,7 @@
         "subtotal": null,
         "igv": null,
         "total": null,
-        "observaciones": "El documento es una cotización, no un comprobante de pago."
+        "observaciones": "Documento es una cotización, no un comprobante de pago."
       },
       "intentos": [
         {
@@ -875,7 +875,7 @@
           "detalle_error": null,
           "tokens_entrada": 1923,
           "tokens_salida": 156,
-          "latencia_ms": 2367,
+          "latencia_ms": 2021,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -884,7 +884,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1923,
       "tokens_salida_total": 156,
-      "latencia_ms_total": 2367,
+      "latencia_ms_total": 2021,
       "simulacion": null
     },
     {
@@ -935,7 +935,7 @@
           "detalle_error": null,
           "tokens_entrada": 1899,
           "tokens_salida": 403,
-          "latencia_ms": 4820,
+          "latencia_ms": 4467,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -944,7 +944,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1899,
       "tokens_salida_total": 403,
-      "latencia_ms_total": 4820,
+      "latencia_ms_total": 4467,
       "simulacion": null
     },
     {
@@ -979,7 +979,7 @@
         "subtotal": null,
         "igv": null,
         "total": null,
-        "observaciones": "Documento ilegible: no se pueden extraer datos confiables."
+        "observaciones": "Documento ilegible: no se puede extraer información confiable."
       },
       "intentos": [
         {
@@ -989,7 +989,7 @@
           "detalle_error": null,
           "tokens_entrada": 1968,
           "tokens_salida": 167,
-          "latencia_ms": 2201,
+          "latencia_ms": 2046,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -998,7 +998,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1968,
       "tokens_salida_total": 167,
-      "latencia_ms_total": 2201,
+      "latencia_ms_total": 2046,
       "simulacion": null
     },
     {

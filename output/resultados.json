@@ -1,6 +1,6 @@
 {
   "metadatos": {
-    "timestamp": "2026-10-03T18:50:08-05:00",
+    "timestamp": "2026-10-04T10:20:37-05:00",
     "proveedor": "cohere",
     "modelo": "command-a-03-2025",
     "prompt_version": "2.0",
@@ -30,8 +30,8 @@
     "docs_con_reintento": 0,
     "llamadas_api_totales": 10,
     "tokens_entrada_totales": 19887,
-    "tokens_salida_totales": 3847,
-    "latencia_promedio_ms": 4869,
+    "tokens_salida_totales": 3852,
+    "latencia_promedio_ms": 4924,
     "motivos_por_codigo": {
       "CAMPOS_OBLIGATORIOS_FALTANTES": 1,
       "REGLA_NEGOCIO": 1,
@@ -408,7 +408,7 @@
           "detalle_error": null,
           "tokens_entrada": 2045,
           "tokens_salida": 399,
-          "latencia_ms": 4806,
+          "latencia_ms": 4742,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -417,7 +417,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 2045,
       "tokens_salida_total": 399,
-      "latencia_ms_total": 4806,
+      "latencia_ms_total": 4742,
       "simulacion": null
     },
     {
@@ -468,7 +468,7 @@
           "detalle_error": null,
           "tokens_entrada": 1974,
           "tokens_salida": 363,
-          "latencia_ms": 4651,
+          "latencia_ms": 4581,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -477,7 +477,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1974,
       "tokens_salida_total": 363,
-      "latencia_ms_total": 4651,
+      "latencia_ms_total": 4581,
       "simulacion": null
     },
     {
@@ -522,7 +522,7 @@
           "detalle_error": null,
           "tokens_entrada": 1912,
           "tokens_salida": 294,
-          "latencia_ms": 3815,
+          "latencia_ms": 4043,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -531,7 +531,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1912,
       "tokens_salida_total": 294,
-      "latencia_ms_total": 3815,
+      "latencia_ms_total": 4043,
       "simulacion": null
     },
     {
@@ -588,7 +588,7 @@
           "detalle_error": null,
           "tokens_entrada": 1922,
           "tokens_salida": 418,
-          "latencia_ms": 5032,
+          "latencia_ms": 6031,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -597,7 +597,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1922,
       "tokens_salida_total": 418,
-      "latencia_ms_total": 5032,
+      "latencia_ms_total": 6031,
       "simulacion": null
     },
     {
@@ -708,7 +708,7 @@
           "detalle_error": null,
           "tokens_entrada": 2537,
           "tokens_salida": 911,
-          "latencia_ms": 10310,
+          "latencia_ms": 10947,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -717,7 +717,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 2537,
       "tokens_salida_total": 911,
-      "latencia_ms_total": 10310,
+      "latencia_ms_total": 10947,
       "simulacion": null
     },
     {
@@ -761,7 +761,7 @@
         "subtotal": 2395.0,
         "igv": 431.1,
         "total": 2826.1,
-        "observaciones": "RUC del cliente y fecha de emisión ilegibles. Texto con caracteres extraños ignorados."
+        "observaciones": "Razón social del emisor y algunos caracteres en el documento son ilegibles. RUC del cliente y fecha de emisión incompletos."
       },
       "intentos": [
         {
@@ -770,8 +770,8 @@
           "tipo_error": null,
           "detalle_error": null,
           "tokens_entrada": 1888,
-          "tokens_salida": 359,
-          "latencia_ms": 4551,
+          "tokens_salida": 364,
+          "latencia_ms": 4544,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -779,8 +779,8 @@
       ],
       "llamadas_api": 1,
       "tokens_entrada_total": 1888,
-      "tokens_salida_total": 359,
-      "latencia_ms_total": 4551,
+      "tokens_salida_total": 364,
+      "latencia_ms_total": 4544,
       "simulacion": null
     },
     {
@@ -836,7 +836,7 @@
           "detalle_error": null,
           "tokens_entrada": 1819,
           "tokens_salida": 377,
-          "latencia_ms": 5910,
+          "latencia_ms": 4439,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -845,7 +845,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1819,
       "tokens_salida_total": 377,
-      "latencia_ms_total": 5910,
+      "latencia_ms_total": 4439,
       "simulacion": null
     },
     {
@@ -883,7 +883,7 @@
           "detalle_error": null,
           "tokens_entrada": 1923,
           "tokens_salida": 156,
-          "latencia_ms": 2143,
+          "latencia_ms": 2052,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -892,7 +892,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1923,
       "tokens_salida_total": 156,
-      "latencia_ms_total": 2143,
+      "latencia_ms_total": 2052,
       "simulacion": null
     },
     {
@@ -943,7 +943,7 @@
           "detalle_error": null,
           "tokens_entrada": 1899,
           "tokens_salida": 403,
-          "latencia_ms": 5151,
+          "latencia_ms": 4899,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -952,7 +952,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1899,
       "tokens_salida_total": 403,
-      "latencia_ms_total": 5151,
+      "latencia_ms_total": 4899,
       "simulacion": null
     },
     {
@@ -997,7 +997,7 @@
           "detalle_error": null,
           "tokens_entrada": 1968,
           "tokens_salida": 167,
-          "latencia_ms": 2317,
+          "latencia_ms": 2957,
           "uso_fallback": false,
           "finish_reason": "COMPLETE",
           "max_tokens": 2048
@@ -1006,7 +1006,7 @@
       "llamadas_api": 1,
       "tokens_entrada_total": 1968,
       "tokens_salida_total": 167,
-      "latencia_ms_total": 2317,
+      "latencia_ms_total": 2957,
       "simulacion": null
     },
     {

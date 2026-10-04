@@ -1,6 +1,6 @@
 # Reporte del lote
 
-- Fecha: 2026-10-03T18:50:08-05:00
+- Fecha: 2026-10-04T10:20:37-05:00
 - Proveedor / modelo: cohere / `command-a-03-2025`
 - Prompt: v2.0
 - Simulación: no (corrida real)
@@ -18,8 +18,8 @@
 | Intentos promedio (docs con llamadas) | 1.0 |
 | Documentos con reintento | 0 |
 | Llamadas totales a la API | 10 |
-| Tokens entrada / salida | 19887 / 3847 |
-| Latencia promedio por documento | 4869 ms |
+| Tokens entrada / salida | 19887 / 3852 |
+| Latencia promedio por documento | 4924 ms |
 | Estado coincide con esperado | 11/11 (100.0 %) |
 | Exactitud de campos clave | 100.0 % |
 
@@ -27,16 +27,16 @@
 
 | Archivo | Estado | Esperado | Motivos | Faltantes | Advertencias | Intentos | Tokens | Latencia (ms) |
 |---|---|---|---|---|---|---|---|---|
-| 01_factura_estandar.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2444 | 4806 |
-| 02_factura_usd_credito.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2337 | 4651 |
-| 03_correo_proveedor.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2206 | 3815 |
-| 04_formato_inusual.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2340 | 5032 |
-| 05_factura_larga.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 3448 | 10310 |
-| 06_incompleta_ocr.txt | **PARCIAL** | PARCIAL ✓ | CAMPOS_OBLIGATORIOS_FALTANTES | fecha_emision, ruc_cliente | — | 1 | 2247 | 4551 |
-| 07_totales_inconsistentes.txt | **PARCIAL** | PARCIAL ✓ | REGLA_NEGOCIO | — | TOTALES_INCONSISTENTES | 1 | 2196 | 5910 |
-| 08_no_es_factura.txt | **FALLIDO** | FALLIDO ✓ | FUERA_DE_DOMINIO | — | — | 1 | 2079 | 2143 |
-| 09_prompt_injection.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2302 | 5151 |
-| 10_ilegible.txt | **FALLIDO** | FALLIDO ✓ | EXTRACCION_INSUFICIENTE | fecha_emision, moneda, numero_factura, razon_social_emisor, ruc_cliente, total | — | 1 | 2135 | 2317 |
+| 01_factura_estandar.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2444 | 4742 |
+| 02_factura_usd_credito.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2337 | 4581 |
+| 03_correo_proveedor.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2206 | 4043 |
+| 04_formato_inusual.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2340 | 6031 |
+| 05_factura_larga.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 3448 | 10947 |
+| 06_incompleta_ocr.txt | **PARCIAL** | PARCIAL ✓ | CAMPOS_OBLIGATORIOS_FALTANTES | fecha_emision, ruc_cliente | — | 1 | 2252 | 4544 |
+| 07_totales_inconsistentes.txt | **PARCIAL** | PARCIAL ✓ | REGLA_NEGOCIO | — | TOTALES_INCONSISTENTES | 1 | 2196 | 4439 |
+| 08_no_es_factura.txt | **FALLIDO** | FALLIDO ✓ | FUERA_DE_DOMINIO | — | — | 1 | 2079 | 2052 |
+| 09_prompt_injection.txt | **EXITOSO** | EXITOSO ✓ | OK | — | — | 1 | 2302 | 4899 |
+| 10_ilegible.txt | **FALLIDO** | FALLIDO ✓ | EXTRACCION_INSUFICIENTE | fecha_emision, moneda, numero_factura, razon_social_emisor, ruc_cliente, total | — | 1 | 2135 | 2957 |
 | 11_vacio.txt | **FALLIDO** | FALLIDO ✓ | DOCUMENTO_VACIO | — | — | 0 | 0 | 0 |
 
 ## Detalle por documento

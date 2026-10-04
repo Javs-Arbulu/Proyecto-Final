@@ -172,19 +172,4 @@ pytest -q
 - [docs/ESQUEMA.md](docs/ESQUEMA.md): campos, tipos, validaciones, esquema doble y umbrales.
 - [docs/DECISIONES.md](docs/DECISIONES.md): 19 ADR, incluido el cambio de proveedor.
 - [docs/RESULTADOS.md](docs/RESULTADOS.md): corridas reales, comparación con lo esperado y patrón de fallos.
-- [docs/GUION_VIDEO.md](docs/GUION_VIDEO.md): guion cronometrado con los comandos exactos.
 
-## Criterio de la rúbrica → evidencia en el repo
-
-| Criterio (pts) | Evidencia |
-|---|---|
-| **Funcionalidad y código (30)**: el lote se procesa sin caerse | `output/reporte.md` (11 documentos, exit 0) · `tests/test_pipeline.py::test_runtime_error_no_detiene_el_lote` |
-| Esquema bien definido (≥ 6 campos, numérico, fecha, enum) | `src/extractor/schema.py` (16 campos) · `docs/ESQUEMA.md` · `tests/test_schema.py::test_esquema_cubre_requisitos_minimos_del_enunciado` |
-| Casos realistas del dominio | `data/documentos/` (11 documentos) · `data/esperado.json` · `tests/test_datos.py` (aritmética SUNAT y RUCs no reales) |
-| **Seguridad y arquitectura (20)**: credenciales | `.env.example` · `.gitignore` · `SecretStr` en `config.py` · `tests/test_seguridad.py` (key real no versionada, sin asignaciones de keys) · `tests/test_config.py::test_repr_y_str_no_exponen_la_key` |
-| Separación esquema / extracción / validación | Módulos en `src/extractor/` · test AST `test_solo_llm_client_importa_cohere` y `test_schema_no_importa_nada_del_proyecto` · ADR-19 (cambio de proveedor) |
-| **Manejo robusto de errores (25)**: fallos reales manejados | Documentos 06, 07, 08, 10 y 11 en `docs/RESULTADOS.md` §3 |
-| JSON inválido que se recupera y otro que alcanza el límite | `output/simulaciones/json_invalido/` · `output/simulaciones/persistente/` · `docs/RESULTADOS.md` §5–§6 |
-| Reintentos con límite (conteo de llamadas) | `tests/test_validacion.py::test_siempre_invalido_falla_tras_exactamente_max_intentos` · `tests/test_config.py::test_rechaza_max_intentos_fuera_de_rango` |
-| **Documentación (10)** | `docs/ESQUEMA.md` · `docs/DECISIONES.md` · este README |
-| **Video (15)**: fallo en vivo y [P1]–[P4] | `docs/GUION_VIDEO.md` (bloques [P3] con fallos en vivo) |

@@ -292,11 +292,11 @@ def extraer_con_reintentos(
         parseo = parsear_respuesta(respuesta)
         intento = _registrar_intento(numero, respuesta, parseo, max_tokens)
         intentos.append(intento)
-        logger.info("%s: %s", nombre, describir_intento(intento, settings.max_intentos, False))
+        se_reintentara = not parseo.ok and numero < settings.max_intentos
+        linea = describir_intento(intento, settings.max_intentos, se_reintentara)
+        logger.info("%s: %s", nombre, linea)
         if notificar is not None:
-            notificar(
-                intento, settings.max_intentos, not parseo.ok and numero < settings.max_intentos
-            )
+            notificar(intento, settings.max_intentos, se_reintentara)
         if parseo.factura is not None:
             return ResultadoExtraccion(parseo.factura, intentos, llamadas_api=numero)
         ultimo_error = parseo.tipo_error or TipoError.JSON_INVALIDO
